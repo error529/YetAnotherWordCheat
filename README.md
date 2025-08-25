@@ -12,3 +12,8 @@ Have newest python
 - I do not endorse nor condone cheating
 - Please fix documentation
 - Probably against discord tos
+
+### WARNING
+- Acts weird with chrome user-di.
+- Being fixed
+- Will release with exe

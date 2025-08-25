@@ -73,7 +73,7 @@ async def start_browser(path: str):
     global _playwright, _browser
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.launch_persistent_context(
-        user_data_dir=path, headless=False, args=['--remote-debugging-port=9222']
+        user_data_dir=path, headless=True, args=['--remote-debugging-port=9222']
     )
 
 
@@ -98,7 +98,6 @@ def find_words(substring: str) -> list[str]:
 async def get_letters(page: Page) -> str | None:
     """Scans for the latest Word Bomb letters and returns them."""
     try:
-        # Search from the last embed upwards to find the most recent game
         for embed in reversed(await page.locator('.grid__623de').all()):
             content = await embed.text_content()
             if "Word Bomb" in content:
@@ -157,4 +156,5 @@ async def main():
 
 
 if __name__ == '__main__':
+
     asyncio.run(main())

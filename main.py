@@ -1,18 +1,19 @@
-#    Wordbomber
-#    Copyright (C) 2025  @http529
+#   YAWC (Yet Another Word Cheat)
+#   Inspired by Qwertz_exe
+#   Copyright (C) 2025 @http529
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Affero General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU Affero General Public License as
+#   published by the Free Software Foundation, either version 3 of the
+#   License, or (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Affero General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU Affero General Public License for more details.
 #
-#    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU Affero General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import asyncio
@@ -24,7 +25,7 @@ from playwright.async_api import async_playwright, Page
 
 # --- Configuration ---
 APP_DIR = os.path.join(os.environ['LOCALAPPDATA'], 'YAWC')
-CHROME_DIR = os.path.join(os.environ['LOCALAPPDATA'], 'Google', 'Chrome', 'User Data')
+CHROME_PLAYWRIGHT_DIR = os.path.join(APP_DIR, 'playwright_data')
 WORD_FILE = os.path.join(APP_DIR, 'words.txt')
 URL_FILE = os.path.join(APP_DIR, 'channel.txt')
 SESSION_FILE = os.path.join(APP_DIR, 'session.txt')
@@ -73,7 +74,9 @@ async def start_browser(path: str):
     global _playwright, _browser
     _playwright = await async_playwright().start()
     _browser = await _playwright.chromium.launch_persistent_context(
-        user_data_dir=path, headless=True, args=['--remote-debugging-port=9222']
+        user_data_dir=path, 
+        headless=False, 
+        args=['--remote-debugging-port=9222']
     )
 
 
@@ -116,7 +119,7 @@ async def main():
         init_words()
 
     url = get_config(URL_FILE, 'Discord Channel URL: ', 'https://discord.com/app')
-    session_dir = get_config(SESSION_FILE, 'Chrome User Data Path: ', CHROME_DIR)
+    session_dir = CHROME_PLAYWRIGHT_DIR
 
     if not url or not session_dir:
         print("URL and session path are required to run.", file=sys.stderr)
@@ -138,9 +141,9 @@ async def main():
                 print(f'\nNew letters detected: {last_letters}')
                 words = find_words(last_letters)
                 if words:
-                    pyperclip.copy(words[0])
+                    pyperclip.copy(min(words, key = len))
                     print(f'Found {len(words)} words. Copied "{words[0]}" to clipboard.')
-                    for word in words[1:6]:  # Show a few more examples
+                    for word in words[1:6]:  
                         print(f'  - {word}')
                 else:
                     print(f'No words found for "{last_letters}"')
@@ -156,5 +159,4 @@ async def main():
 
 
 if __name__ == '__main__':
-
     asyncio.run(main())

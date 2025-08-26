@@ -8,12 +8,11 @@ Have newest python
 2. Run playwright install
 3. Run main.py
 
-## Important Notices
+OR 
+run https://github.com/error529/YetAnotherWordCheat/releases/tag/EXE
+
+# Important Notices
 - I do not endorse nor condone cheating
 - Please fix documentation
 - Probably against discord tos
 
-### WARNING
-- Acts weird with chrome user-di.
-- Being fixed
-- Will release with exe

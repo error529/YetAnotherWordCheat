@@ -15,24 +15,38 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 import asyncio
+import os
 import sys
 import re
 import pyperclip
 import requests
 from playwright.async_api import async_playwright, Page
 
+
+
+def start_screen():
+    print(r'__   __ ___        ______ ')
+    print(r'\ \ / // \ \      / / ___|')
+    print(r' \ V // _ \ \ /\ / / |    ')
+    print(r'  | |/ ___ \ V  V /| |___ ')
+    print(r'  |_/_/   \_\_/\_/  \____|')
+    print('  YetAnotherWordCheat')
+    print(r'  (C) 2025 @http529 ')
+    print("\n \n \n \n")
+
+
 # --- Configuration ---
 APP_DIR = os.path.join(os.environ['LOCALAPPDATA'], 'YAWC')
 CHROME_PLAYWRIGHT_DIR = os.path.join(APP_DIR, 'playwright_data')
 WORD_FILE = os.path.join(APP_DIR, 'words.txt')
 URL_FILE = os.path.join(APP_DIR, 'channel.txt')
-SESSION_FILE = os.path.join(APP_DIR, 'session.txt')
-DEFAULT_WORDS_URL = 'https://raw.githubusercontent.com/first20hours/google-10000-english/refs/heads/master/google-10000-english-usa-no-swears.txt'
+HAS_RUN = os.path.join(APP_DIR, 'state.txt')
+DEFAULT_WORDS_URL = 'https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears.txt'
 
 _playwright = None
 _browser = None
+word_freq = {}
 
 
 # --- Helper Functions ---
@@ -44,9 +58,8 @@ def get_config(file: str, prompt: str, default: str = None) -> str:
             content = f.read().strip()
             if content:
                 return content
-
     user_input = input(f'{prompt}[default: {default}] ') or default
-    if user_input and input('Save for next time? (y/n): ').lower() == 'y':
+    if user_input:
         os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, 'w', encoding='utf-8') as f:
             f.write(user_input)
@@ -70,15 +83,26 @@ def init_words():
 
 
 async def start_browser(path: str):
-    """Starts a persistent Playwright browser session without verbose logging."""
+    """Starts a persistent Playwright browser session with a dedicated user directory."""
     global _playwright, _browser
+    print(f'Starting browser with persistent user data in: {path}')
+    os.makedirs(path, exist_ok=True)
     _playwright = await async_playwright().start()
-    _browser = await _playwright.chromium.launch_persistent_context(
-        user_data_dir=path, 
-        headless=False, 
-        args=['--remote-debugging-port=9222']
-    )
-
+    if os.path.exists(HAS_RUN):
+        _browser = await _playwright.chromium.launch_persistent_context(
+            user_data_dir=path,
+            headless=True,
+            args=['--remote-debugging-port=9222']
+        )
+    else:
+        with open(HAS_RUN, 'w') as f:
+            f.write('1')
+            print('After logging into discord please rerun this program')
+            _browser = await _playwright.chromium.launch_persistent_context(
+                user_data_dir=path,
+                headless=False,
+                args=['--remote-debugging-port=9222']
+            )
 
 async def stop_browser():
     """Closes the browser session quietly."""
@@ -101,7 +125,8 @@ def find_words(substring: str) -> list[str]:
 async def get_letters(page: Page) -> str | None:
     """Scans for the latest Word Bomb letters and returns them."""
     try:
-        for embed in reversed(await page.locator('.grid__623de').all()):
+        game_embeds = await page.locator('.grid__623de').all()
+        for embed in reversed(game_embeds):
             content = await embed.text_content()
             if "Word Bomb" in content:
                 if match := re.search(r'Letters(.{3})', content):
@@ -111,10 +136,33 @@ async def get_letters(page: Page) -> str | None:
     return None
 
 
+def analyze_and_copy_words(words: list[str]):
+    """Analyzes the found words, displays the top 8, and copies the shortest of the top 4."""
+    if not words:
+        print('No words found.')
+        return
+
+
+    print("Top 8 most popular words:")
+    for i, word in enumerate(words[:8]):
+        print(f'{i + 1}. {word}')
+
+    top4 = words[:4]
+
+    if top4:
+        shortest_word = min(top4, key=len)
+        pyperclip.copy(shortest_word)
+        print(f'Copied {shortest_word} clipboard.')
+    else:
+        print('\nLess than 4 words were found, so no word was copied.')
+
+
 # --- Main Execution ---
 
 async def main():
     """Main function to set up and run the bot."""
+    print('Hello World')
+    start_screen()
     if not os.path.isfile(WORD_FILE):
         init_words()
 
@@ -140,13 +188,7 @@ async def main():
                 last_letters = letters
                 print(f'\nNew letters detected: {last_letters}')
                 words = find_words(last_letters)
-                if words:
-                    pyperclip.copy(min(words, key = len))
-                    print(f'Found {len(words)} words. Copied "{words[0]}" to clipboard.')
-                    for word in words[1:6]:  
-                        print(f'  - {word}')
-                else:
-                    print(f'No words found for "{last_letters}"')
+                analyze_and_copy_words(words)
             await asyncio.sleep(1)
 
     except KeyboardInterrupt:
